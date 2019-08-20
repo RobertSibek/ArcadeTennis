@@ -41,7 +41,15 @@ version 1.3.1 - CURRENT
     - about menu shows game info
     - bad mug logo
     - applause sfx on win screen
-    - pressing R switches between modern and retro mode
+    - custom in-games settings:
+        R enable/disable retro mode
+        S enable/disable shadows
+        F enable/disable sounds
+        I enable/disable ball image
+        B enable/disable dynamic ball size
+        D enable/disable debug mode (console logging) 
+        P or SPACE pauses the game
+        Q quits to main menu
     
 -->
 
@@ -77,16 +85,21 @@ version 1.3.1 - CURRENT
     const COMPUTER_MOVE_SPEED = 7.0;
     const CX = CANVAS_WIDTH / 2;
     const CY = CANVAS_HEIGHT / 2;
+    const KEY_BALL_IMAGE = 105;
+    const KEY_DYNAMIC_SIZE = 98;
+    const KEY_DEBUG = 100;
     const KEY_PAUSE = 112;
     const KEY_RETRO = 114;
     const KEY_SPACE = 32;
+    const KEY_SOUND_FX = 102;
+    const KEY_SHADOWS = 115;
     const KEY_QUIT = 113;
     const KEY_SCREENSHOT = 115;
     const PATH_IMG = 'images/';
     const PATH_SFX = 'sounds/';
     const MAX_COLS = 10;
     const MAX_ROWS = 5;
-    const MAX_SCORE = 10;
+    const MAX_SCORE = 1;
     const PADDLE_COLOR = '#FFFF32';
     const PADDLE_EDGE_SPACE = 5;
     const PADDLE_HEIGHT = 100;
@@ -108,6 +121,7 @@ version 1.3.1 - CURRENT
     var gamePaused = false;
     var gameStarted = false;
     var gfxDynamicBallSize = true; // enable close_to_cam effect
+    var gfxRetroMode = false; // enable retro mode    
     var gfxShadowsEnabled = true; // enable ball shadow
     var gfxBallImage = true; // enable ball shadow
     var imgCourt;
@@ -124,6 +138,8 @@ version 1.3.1 - CURRENT
     var player2Score = 0;
     var playerHattrick = 0;
     var powerBallActive = false;
+    var sfxEnabled = true;
+    var introMusicPlaying = false;
     var sfxBallOut;
     var sfxBoost;
     var sfxInsertCoin;
@@ -135,7 +151,6 @@ version 1.3.1 - CURRENT
     var applausePlaying = false;
     var showingWinningScreen = false;
     var menuSfxPlayed = false;
-    var retroMode = true;
 
     window.onload = function() {
         loadSounds();
@@ -153,24 +168,52 @@ version 1.3.1 - CURRENT
         });
 
         document.addEventListener('keypress', keyPressed);
-        document.addEventListener('keyup', keyReleased);
-
         canvas.addEventListener('click', function(evt) {
             resetGame();
         });
     } // window.onload()
 
     function keyPressed(evt) {
-        console.log('Key pressed ' + evt.keyCode);
+        debugLog('Pressed key with code ' + evt.keyCode);
         switch (evt.keyCode) {
+            case KEY_BALL_IMAGE:
+            case KEY_BALL_IMAGE - 32:
+                gfxBallImage = gfxBallImage ? false : true;
+                debugLog('gfxBallImage is ' + (gfxBallImage ? 'enabled' : 'disabled'));
+                break;
+            case KEY_DEBUG:
+            case KEY_DEBUG - 32:
+                debugEnabled = debugEnabled ? false : true;
+                debugLog('debugLog is ' + (debugLog ? 'enabled' : 'disabled'));
+                break;
             case KEY_PAUSE:
             case KEY_PAUSE - 32: // lowercased
             case KEY_SPACE:
-                if (gamePaused) {
-                    gamePaused = false;
-                } else {
-                    gamePaused = true;
+                gamePaused = gamePaused ? false : true;
+                debugLog('gamePaused is ' + (gamePaused ? 'enabled' : 'disabled'));
+                break;
+            case KEY_SOUND_FX:
+            case KEY_SOUND_FX - 32: // lowercased
+                sfxEnabled = sfxEnabled ? false : true;
+                debugLog('sfxEnabled is ' + (sfxEnabled ? 'enabled' : 'disabled'));
+                if (introMusicPlaying && !sfxEnabled) {
+                    sfxIntroMusic.pause();   
+                    introMusicPlaying = false;
                 }
+                if (!gameStarted && sfxEnabled) {
+                    playSfx(sfxIntroMusic);
+                    introMusicPlaying = true;
+                }
+                break;                
+            case KEY_DYNAMIC_SIZE:
+            case KEY_DYNAMIC_SIZE - 32:
+                gfxDynamicBallSize = gfxDynamicBallSize ? false : true;
+                debugLog('gfxDynamicBallSize is ' + (gfxDynamicBallSize ? 'enabled' : 'disabled'));
+                break;
+            case KEY_SHADOWS:
+            case KEY_SHADOWS - 32:
+                gfxShadowsEnabled = gfxShadowsEnabled ? false : true;
+                debugLog('gfxShadowsEnabled is ' + (gfxShadowsEnabled ? 'enabled' : 'disabled'));
                 break;
             case KEY_QUIT:
             case KEY_QUIT - 32:
@@ -181,16 +224,18 @@ version 1.3.1 - CURRENT
                 break;
             case KEY_RETRO:
             case KEY_RETRO - 32:
-                if (retroMode) {
-                    retroMode = false;
-                } else {
-                    retroMode = true;
-                }
+                gfxRetroMode = gfxRetroMode ? false : true;
+                debugLog('gfxRetroMode is ' + (gfxRetroMode ? 'enabled' : 'disabled'));
+                break;
+            default:
+                break;
         }
     }
 
-    function keyReleased(evt) {
-        console.log('Key released ' + evt.keyCode);
+    function debugLog(text) {
+        if (debugEnabled) {
+            console.log(text);
+        }
     }
 
     // Dynamically create canvas element
@@ -213,9 +258,7 @@ version 1.3.1 - CURRENT
         // account for the margins, canvas position on page, scroll amount, etc.
         mouseX = evt.clientX - rect.left - root.scrollLeft;
         mouseY = evt.clientY - rect.top - root.scrollTop;
-        if (debugEnabled) {
-            console.log('mouseX = ' + mouseX + ', mouseY = ' + mouseY);
-        }
+        debugLog('mouseX = ' + mouseX + ', mouseY = ' + mouseY);
         return {
             x: mouseX,
             y: mouseY
@@ -240,11 +283,11 @@ version 1.3.1 - CURRENT
             if (showingWinningScreen) {
                 showWinScreen();
             } else {
-                if (!retroMode) {
+                if (!gfxRetroMode) {
                     ctx.drawImage(imgCourt, 0, 0);
                 }
                 drawNet();
-                if (gfxBallImage && !retroMode) {
+                if (gfxBallImage && !gfxRetroMode) {
                     drawBallImage(ballX, ballY, ballRadius, powerBallActive ? imgBallBoosted : imgBall);
                 } else {
                     drawBall(ballX, ballY, ballRadius, Math.PI * 2, powerBallActive ? BALL_BOOST_COLOR : BALL_COLOR);
@@ -285,13 +328,13 @@ version 1.3.1 - CURRENT
                 ballSpeedX *= -1;
                 var deltaY = ballY - (paddle1Y + PADDLE_HEIGHT / 2);
                 ballSpeedY = deltaY * 0.35;
-                sfxPaddleHit.play();
+                playSfx(sfxPaddleHit);
             } else {
                 if (!showingWinningScreen) {
                     computerScore++;
                     playerHattrick = 0;
                     computerHattrick++;
-                    if (!retroMode) {
+                    if (!gfxRetroMode) {
                         if (powerBallActive) {
                             powerBallActive = false;
                             computerHattrick = 0;
@@ -302,7 +345,7 @@ version 1.3.1 - CURRENT
                         }
                     }
                     ballReset();
-                    sfxBallOut.play();
+                    playSfx(sfxBallOut);
                 }
             }
         }
@@ -310,13 +353,13 @@ version 1.3.1 - CURRENT
         if (ballX > PADDLE2_LEFT_EDGE - ballRadius / 2) {
             if (ballY > paddle2Y && ballY < paddle2Y + PADDLE_HEIGHT) {
                 ballSpeedX *= -1;
-                sfxPaddleHit.play();
+                playSfx(sfxPaddleHit);
             } else {
                 if (!showingWinningScreen) {
                     player1Score++;
                     playerHattrick++;
                     computerHattrick = 0;
-                    if (!retroMode) {
+                    if (!gfxRetroMode) {
                         if (powerBallActive) {
                             powerBallActive = false;
                             playerHattrick = 0;
@@ -327,12 +370,12 @@ version 1.3.1 - CURRENT
                         }
                     }
                     ballReset();
-                    sfxBallOut.play();
+                    playSfx(sfxBallOut);
                 }
             }
         }
 
-        if (gfxDynamicBallSize && !retroMode) {
+        if (gfxDynamicBallSize && !gfxRetroMode) {
             var delta = (BALL_RADIUS_MAX - BALL_RADIUS_MIN) / 1.25;
             var ballDelta = BALL_RADIUS_MAX - (Math.abs(ballX - CX) / 10 / delta);
             if (ballDelta < BALL_RADIUS_MIN) {
@@ -344,10 +387,16 @@ version 1.3.1 - CURRENT
 
         if (ballY > canvas.height - ballRadius / 2 || ballY < ballRadius / 2) {
             ballSpeedY *= -1;
-            sfxWallReflect.play();
+            playSfx(sfxWallReflect);
         }
 
     } // moveEverything()
+    
+    function playSfx(sfx) {
+        if (sfxEnabled) {
+            sfx.play();
+        }
+    }
 
     // Simple AI for computer paddle
     function moveComputerPaddle() {
@@ -369,13 +418,13 @@ version 1.3.1 - CURRENT
         }
         ballX = BALLX_START;
         ballY = BALLY_START;
-        if (powerBallActive && !retroMode) {
+        if (powerBallActive && !gfxRetroMode) {
             ballSpeedY = BALLSPEEDY_START * BALL_SPEED_BOOST;
             ballSpeedX *= BALL_SPEED_BOOST;
-            sfxBoost.play();
+            playSfx(sfxBoost);
         } else {
-            ballSpeedY = retroMode ? BALLSPEEDY_START * 0.5 : BALLSPEEDY_START ;
-            ballSpeedX = retroMode ? BALLSPEEDX_START * 0.5 : BALLSPEEDX_START * -1;
+            ballSpeedY = gfxRetroMode ? BALLSPEEDY_START * 0.5 : BALLSPEEDY_START;
+            ballSpeedX = gfxRetroMode ? BALLSPEEDX_START * 0.5 : BALLSPEEDX_START * -1;
         }
 
     } // ballReset()
@@ -383,7 +432,7 @@ version 1.3.1 - CURRENT
     // Show winning screen with scores
     function showWinScreen() {
         if (!applausePlaying) {
-            sfxApplause.play();
+            playSfx(sfxApplause);
             applausePlaying = true;
         }
 
@@ -416,14 +465,15 @@ version 1.3.1 - CURRENT
             if (showingWinningScreen) {
                 showingWinningScreen = false;
                 gameStarted = false;
-                sfxIntroMusic.play();
+                playSfx(sfxIntroMusic);
+                introMusicPlaying = true; // TODO try to find the way of checking if the sound file is playing, eg. audio.isPLaying()
             }
         } else {
             resetScore();
             ballReset();
             gameStarted = true;
             sfxIntroMusic.pause();
-            sfxInsertCoin.play();
+            playSfx(sfxInsertCoin);
         }
 
     } // resetGame()
@@ -518,7 +568,7 @@ version 1.3.1 - CURRENT
 
     // Draw ball as colored circle
     function drawBall(x, y, r, a, color) {
-        if (gfxShadowsEnabled && !retroMode) {
+        if (gfxShadowsEnabled && !gfxRetroMode) {
             ctx.shadowColor = BALL_SHADOW_COLOR;
             ctx.shadowBlur = 5;
             ctx.shadowOffsetY = 3;
@@ -527,7 +577,7 @@ version 1.3.1 - CURRENT
         //    ctx.drawImage(imgBall, x, y, r*1.55, r*1.55);
         ctx.fillStyle = color;
         ctx.beginPath();
-        ctx.arc(x, y, (retroMode) ? BALL_RADIUS_STATIC : r, 0, a, true);
+        ctx.arc(x, y, (gfxRetroMode) ? BALL_RADIUS_STATIC : r, 0, a, true);
         ctx.fill();
         if (gfxShadowsEnabled) {
             ctx.shadowOffsetY = 0;
@@ -552,7 +602,7 @@ version 1.3.1 - CURRENT
 
     // Draw paddle
     function drawPaddle(x, y, width, height, color) {
-        if (retroMode) {
+        if (gfxRetroMode) {
             drawRect(x, y, width, height, 'white');
         } else {
             drawRect(x, y, width, height, color);
