@@ -1,20 +1,17 @@
 <!--
 Arcade Tennis 
-Version 1.3.0
+Version 1.3.1
 Created by Robert Sibek, Bad Mug Games
 
 TODOS:
     - redesign welcome screen. Show logo, add music, maybe some animation (demo play)
     - add difficulty selection
-    - add powerball when player gets score 3:0 which increase speed and temporary change color
-    - replace drawCircle witch the tennis ball image
     - redesign paddles
     - add lights
     - add option to play evening match
     - use custom font
     - let player choose the side
     - allow two player game   
-    - add applause SFX to win screen
     - add screenshot feature (save canvas to image)
     - find/create better texture for playground (more detailed)
 
@@ -24,6 +21,7 @@ KNOWN BUGS:
     
 version 1.0
     - basic game mechanic
+    - original graphic
 version 1.2
     - dynamic ball size 
     - dynamic ball shadow
@@ -38,11 +36,13 @@ varsion 1.3.0
     - pressing Q will quit to menu
     - pressing P will pause the game
     - receive both uppercase and lowercase keypress is now working
-version 1.3.1 - IN PROGRESS
+version 1.3.1 - CURRENT
     - settings menu for sfx & graphic options (performance scaling)
     - about menu shows game info
     - bad mug logo
     - applause sfx on win screen
+    - pressing R switches between modern and retro mode
+    
 -->
 
 <!DOCTYPE html>
@@ -56,7 +56,7 @@ version 1.3.1 - IN PROGRESS
 
 <script>
     // Constants and variables definitions
-    const VERSION = '1.3.0';
+    const VERSION = '1.3.1';
     const CANVAS_HEIGHT = 400;
     const CANVAS_NAME = 'gameCanvas';
     const CANVAS_WIDTH = 800;
@@ -78,6 +78,7 @@ version 1.3.1 - IN PROGRESS
     const CX = CANVAS_WIDTH / 2;
     const CY = CANVAS_HEIGHT / 2;
     const KEY_PAUSE = 112;
+    const KEY_RETRO = 114;
     const KEY_SPACE = 32;
     const KEY_QUIT = 113;
     const KEY_SCREENSHOT = 115;
@@ -130,8 +131,11 @@ version 1.3.1 - IN PROGRESS
     var sfxPaddleHit;
     var sfxWallReflect;
     var sfxMenuSelect;
+    var sfxApplause;
+    var applausePlaying = false;
     var showingWinningScreen = false;
     var menuSfxPlayed = false;
+    var retroMode = true;
 
     window.onload = function() {
         loadSounds();
@@ -161,7 +165,7 @@ version 1.3.1 - IN PROGRESS
         switch (evt.keyCode) {
             case KEY_PAUSE:
             case KEY_PAUSE - 32: // lowercased
-            case KEY_SPACE:         
+            case KEY_SPACE:
                 if (gamePaused) {
                     gamePaused = false;
                 } else {
@@ -175,6 +179,13 @@ version 1.3.1 - IN PROGRESS
                 computerHattrick = 0;
                 playerHattrick = 0;
                 break;
+            case KEY_RETRO:
+            case KEY_RETRO - 32:
+                if (retroMode) {
+                    retroMode = false;
+                } else {
+                    retroMode = true;
+                }
         }
     }
 
@@ -229,9 +240,11 @@ version 1.3.1 - IN PROGRESS
             if (showingWinningScreen) {
                 showWinScreen();
             } else {
-                ctx.drawImage(imgCourt, 0, 0);
+                if (!retroMode) {
+                    ctx.drawImage(imgCourt, 0, 0);
+                }
                 drawNet();
-                if (gfxBallImage) {
+                if (gfxBallImage && !retroMode) {
                     drawBallImage(ballX, ballY, ballRadius, powerBallActive ? imgBallBoosted : imgBall);
                 } else {
                     drawBall(ballX, ballY, ballRadius, Math.PI * 2, powerBallActive ? BALL_BOOST_COLOR : BALL_COLOR);
@@ -244,7 +257,7 @@ version 1.3.1 - IN PROGRESS
                     ctx.shadowColor = 'black';
                     ctx.shadowOffsetX = 3;
                     ctx.shadowOffsetY = 2;
-//                    ctx.fillText('GAME PAUSED', CX, CY);
+                    //                    ctx.fillText('GAME PAUSED', CX, CY);
                     ctx.shadowOffsetX = 0;
                     ctx.shadowOffsetY = 0;
                 }
@@ -278,12 +291,14 @@ version 1.3.1 - IN PROGRESS
                     computerScore++;
                     playerHattrick = 0;
                     computerHattrick++;
-                    if (powerBallActive) {
-                        powerBallActive = false;
-                        computerHattrick = 0;
-                    } else {
-                        if (computerHattrick == 3) {
-                            powerBallActive = true;
+                    if (!retroMode) {
+                        if (powerBallActive) {
+                            powerBallActive = false;
+                            computerHattrick = 0;
+                        } else {
+                            if (computerHattrick == 3) {
+                                powerBallActive = true;
+                            }
                         }
                     }
                     ballReset();
@@ -301,13 +316,14 @@ version 1.3.1 - IN PROGRESS
                     player1Score++;
                     playerHattrick++;
                     computerHattrick = 0;
-
-                    if (powerBallActive) {
-                        powerBallActive = false;
-                        playerHattrick = 0;
-                    } else {
-                        if (playerHattrick == 3) {
-                            powerBallActive = true;
+                    if (!retroMode) {
+                        if (powerBallActive) {
+                            powerBallActive = false;
+                            playerHattrick = 0;
+                        } else {
+                            if (playerHattrick == 3) {
+                                powerBallActive = true;
+                            }
                         }
                     }
                     ballReset();
@@ -316,7 +332,7 @@ version 1.3.1 - IN PROGRESS
             }
         }
 
-        if (gfxDynamicBallSize) {
+        if (gfxDynamicBallSize && !retroMode) {
             var delta = (BALL_RADIUS_MAX - BALL_RADIUS_MIN) / 1.25;
             var ballDelta = BALL_RADIUS_MAX - (Math.abs(ballX - CX) / 10 / delta);
             if (ballDelta < BALL_RADIUS_MIN) {
@@ -353,19 +369,24 @@ version 1.3.1 - IN PROGRESS
         }
         ballX = BALLX_START;
         ballY = BALLY_START;
-        if (powerBallActive) {
+        if (powerBallActive && !retroMode) {
             ballSpeedY = BALLSPEEDY_START * BALL_SPEED_BOOST;
             ballSpeedX *= BALL_SPEED_BOOST;
             sfxBoost.play();
         } else {
-            ballSpeedY = BALLSPEEDY_START;
-            ballSpeedX = BALLSPEEDX_START * -1;
+            ballSpeedY = retroMode ? BALLSPEEDY_START * 0.5 : BALLSPEEDY_START ;
+            ballSpeedX = retroMode ? BALLSPEEDX_START * 0.5 : BALLSPEEDX_START * -1;
         }
 
     } // ballReset()
 
     // Show winning screen with scores
     function showWinScreen() {
+        if (!applausePlaying) {
+            sfxApplause.play();
+            applausePlaying = true;
+        }
+
         // Draw text shadow first
         //        ctx.shadowColor = 'gray';
         ctx.shadowBlur = 5;
@@ -415,6 +436,7 @@ version 1.3.1 - IN PROGRESS
         sfxWallReflect = new Audio(PATH_SFX + "ballWallReflect.wav");
         sfxInsertCoin = new Audio(PATH_SFX + "insertCoin.wav");
         sfxBoost = new Audio(PATH_SFX + "ballSpeedBoost.wav");
+        sfxApplause = new Audio(PATH_SFX + "applause.mp3");
         //    sfxMenuSelect = new Audio(PATH_SFX + "menuSelect.wav");
     } // loadSounds()
 
@@ -432,6 +454,7 @@ version 1.3.1 - IN PROGRESS
 
     // Shows Start screen with menu (later)
     function showStartScreen() {
+        applausePlaying = false;
         // TODO fix promise exception before enable        
         //    sfxIntroMusic.play()
         ctx.drawImage(imgLogo, CX - imgLogo.width / 2, CY - imgLogo.height / 2);
@@ -495,7 +518,7 @@ version 1.3.1 - IN PROGRESS
 
     // Draw ball as colored circle
     function drawBall(x, y, r, a, color) {
-        if (gfxShadowsEnabled) {
+        if (gfxShadowsEnabled && !retroMode) {
             ctx.shadowColor = BALL_SHADOW_COLOR;
             ctx.shadowBlur = 5;
             ctx.shadowOffsetY = 3;
@@ -504,7 +527,7 @@ version 1.3.1 - IN PROGRESS
         //    ctx.drawImage(imgBall, x, y, r*1.55, r*1.55);
         ctx.fillStyle = color;
         ctx.beginPath();
-        ctx.arc(x, y, r, 0, a, true);
+        ctx.arc(x, y, (retroMode) ? BALL_RADIUS_STATIC : r, 0, a, true);
         ctx.fill();
         if (gfxShadowsEnabled) {
             ctx.shadowOffsetY = 0;
@@ -529,8 +552,13 @@ version 1.3.1 - IN PROGRESS
 
     // Draw paddle
     function drawPaddle(x, y, width, height, color) {
-        drawRect(x, y, width, height, color);
-        drawRect(x + 2, y + 2, width - 4, height - 4, PADDLE_COLOR);
+        if (retroMode) {
+            drawRect(x, y, width, height, 'white');
+        } else {
+            drawRect(x, y, width, height, color);
+            drawRect(x + 2, y + 2, width - 4, height - 4, PADDLE_COLOR);
+        }
+
     } // drawPaddle()
 
     // Draw playground net
