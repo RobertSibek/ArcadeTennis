@@ -44,12 +44,12 @@
 #### version 1.3.1
 - applause sfx on win screen
 - custom in-games settings:
-    R enable/disable retro mode
-    S enable/disable shadows
-    F enable/disable sounds
-    I enable/disable ball image
-    B enable/disable dynamic ball size
-    D enable/disable debug mode (console logging) 
-    P or SPACE pauses the game
-    Q quits to main menu
+  - R enable/disable retro mode
+  - S enable/disable shadows
+  - F enable/disable sounds
+  - I enable/disable ball image
+  - B enable/disable dynamic ball size
+  - D enable/disable debug mode (console logging) 
+  - P or SPACE pauses the game
+  - Q quits to main menu
 - fixed static ball size when image is used
