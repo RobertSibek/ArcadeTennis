@@ -53,3 +53,6 @@
   - P or SPACE pauses the game
   - Q quits to main menu
 - fixed static ball size when image is used
+#### version 1.3.2
+- intro music autoplay exception handled
+- drawNet method now uses setLineDash instead of the for-loop
