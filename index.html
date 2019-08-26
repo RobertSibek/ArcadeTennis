@@ -1,575 +1,616 @@
 <!-- Arcade Tennis, v1.3.2 - created by Robert Sibek, Bad Mug Games -->
 
+<!--
+	TODO
+
+	[]	show controls in pause 
+	[]	show controls in main menu
+	[]	allow to disable intro music
+	[]	stop playing music when tab loses focus
+	[]	after ballReset, place it to different locations among the net
+	[] 	optimize speed
+	[]	add support for touch events (touchmove)
+
+	[]	take new screenshots
+-->
+
 <!DOCTYPE html>
 <html lang="en">
 
 <head>
-    <title>Arcade Tennis - Bad Mug Games</title>
-    <meta content="text/html;charset=utf‐8" http-equiv="Content‐Type">
-    <meta content="utf‐8" http‐equiv="encoding">
+	<title>Arcade Tennis - Bad Mug Games</title>
+	<meta http-equiv="Content‐Type" content="text/html;charset=utf‐8">
+	<meta http‐equiv="encoding" content="utf‐8">
+	<meta name="author" content="Robert Sibek">
+	<meta name="description" content="Pong game remake made in vanilla JavaScript">
+	<meta name="keywords" content="arcade tennis,arcade,tennis,bad mug,game">
+	<meta name="application-name" content="Arcade Tennis">
+	<meta name="creator" content="Robert Sibek">
+	<meta name="published" content="Bad Mug Games">
 </head>
 
 <script>
-    // Constants and variables definitions
-    const VERSION = '1.3.1';
-    const CANVAS_HEIGHT = 400;
-    const CANVAS_NAME = 'gameCanvas';
-    const CANVAS_WIDTH = 800;
-    const BALL_BOOST_COLOR = 'red';
-    const BALL_COLOR = 'white';
-    const BALL_RADIUS_MAX = 15;
-    const BALL_RADIUS_MIN = 8;
-    const BALL_RADIUS = BALL_RADIUS_MAX / BALL_RADIUS_MIN;
-    const BALL_RADIUS_STATIC = 12;
-    const BALL_SHADOW_COLOR = 'black';
-    const BALL_SPEED_BOOST = 1.75;
-    const BALLSPEEDX_START = 6;
-    const BALLSPEEDY_START = 8;
-    const BALLX_START = CANVAS_WIDTH / 2 - BALL_RADIUS_MIN / 2;
-    const BALLY_START = CANVAS_HEIGHT - 30;
-    const BTN_FONT_SIZE = 30;
-    const BTN_FONT = 'Arial';
-    const COMPUTER_MOVE_SPEED = 7.0;
-    const CX = CANVAS_WIDTH / 2;
-    const CY = CANVAS_HEIGHT / 2;
-    const KEY_BALL_IMAGE = 105;
-    const KEY_DYNAMIC_SIZE = 98;
-    const KEY_DEBUG = 100;
-    const KEY_PAUSE = 112;
-    const KEY_RETRO = 114;
-    const KEY_SPACE = 32;
-    const KEY_SOUND_FX = 102;
-    const KEY_SHADOWS = 115;
-    const KEY_QUIT = 113;
-    const KEY_SCREENSHOT = 115;
-    const PATH_IMG = 'images/';
-    const PATH_SFX = 'sounds/';
-    const MAX_COLS = 10;
-    const MAX_ROWS = 5;
-    const MAX_SCORE = 10;
-    const PADDLE_COLOR = '#FFFF32';
-    const PADDLE_EDGE_SPACE = 5;
-    const PADDLE_HEIGHT = 100;
-    const PADDLE_THICKNESS = 15;
-    const PADDLE1_RIGHT_EDGE = PADDLE_EDGE_SPACE + PADDLE_THICKNESS;
-    const PADDLE2_DEADZONE = 35;
-    const PADDLE2_LEFT_EDGE = CANVAS_WIDTH - PADDLE_EDGE_SPACE - PADDLE_THICKNESS;
+	// Constants and variables definitions
+	const VERSION = '1.3.1';
+	const CANVAS_HEIGHT = 400;
+	const CANVAS_NAME = 'gameCanvas';
+	const CANVAS_WIDTH = 800;
+	const BALL_BOOST_COLOR = 'red';
+	const BALL_COLOR = 'white';
+	const BALL_RADIUS_MAX = 15;
+	const BALL_RADIUS_MIN = 8;
+	const BALL_RADIUS = BALL_RADIUS_MAX / BALL_RADIUS_MIN;
+	const BALL_RADIUS_STATIC = 12;
+	const BALL_SHADOW_COLOR = 'black';
+	const BALL_SPEED_BOOST = 1.75;
+	const BALLSPEEDX_START = 6;
+	const BALLSPEEDY_START = 8;
+	const BALLX_START = CANVAS_WIDTH / 2 - BALL_RADIUS_MIN / 2;
+	const BALLY_START = CANVAS_HEIGHT - 30;
+	const BTN_FONT_SIZE = 30;
+	const BTN_FONT = 'Arial';
+	const COMPUTER_MOVE_SPEED = 7.0;
+	const CX = CANVAS_WIDTH / 2;
+	const CY = CANVAS_HEIGHT / 2;
+	const KEY_BALL_IMAGE = 105;
+	const KEY_DYNAMIC_SIZE = 98;
+	const KEY_DEBUG = 100;
+	const KEY_PAUSE = 112;
+	const KEY_RETRO = 114;
+	const KEY_SPACE = 32;
+	const KEY_SOUND_FX = 102;
+	const KEY_SHADOWS = 115;
+	const KEY_QUIT = 113;
+	const KEY_SCREENSHOT = 115;
+	const PATH_IMG = 'images/';
+	const PATH_SFX = 'sounds/';
+	const MAX_COLS = 10;
+	const MAX_ROWS = 5;
+	const MAX_SCORE = 10;
+	const PADDLE_COLOR = '#FFFF32';
+	const PADDLE_EDGE_SPACE = 5;
+	const PADDLE_HEIGHT = 100;
+	const PADDLE_THICKNESS = 15;
+	const PADDLE1_RIGHT_EDGE = PADDLE_EDGE_SPACE + PADDLE_THICKNESS;
+	const PADDLE2_DEADZONE = 35;
+	const PADDLE2_LEFT_EDGE = CANVAS_WIDTH - PADDLE_EDGE_SPACE - PADDLE_THICKNESS;
 
-    var ballRadius = BALL_RADIUS_STATIC;
-    var ballSpeedX = BALLSPEEDX_START;
-    var ballSpeedY = BALLSPEEDY_START;
-    var ballX = BALLX_START;
-    var ballY = BALLY_START;
-    var canvas;
-    var computerHattrick = 0;
-    var ctx;
-    var debugEnabled = false;
-    var framesPerSecond = 120; // animation framerate smoothness
-    var gamePaused = false;
-    var gameStarted = false;
-    var gfxDynamicBallSize = true; // enable close_to_cam effect
-    var gfxRetroMode = false; // enable retro mode    
-    var gfxShadowsEnabled = true; // enable ball shadow
-    var gfxBallImage = true; // enable ball shadow
-    var imgCourt;
-    var imgLogo;
-    var imgBall;
-    var imgBallBoosted;
-    var keyHeld_Pause = false;
-    var mouseX, mouseY;
-    var paddle1X = CY;
-    var paddle1Y = CY;
-    var paddle2X;
-    var paddle2Y = CY;
-    var player1Score = 0;
-    var player2Score = 0;
-    var playerHattrick = 0;
-    var powerBallActive = false;
-    var sfxEnabled = true;
-    var introMusicPlaying = false;
-    var sfxBallOut;
-    var sfxBoost;
-    var sfxInsertCoin;
-    var sfxIntroMusic;
-    var sfxPaddleHit;
-    var sfxWallReflect;
-    var sfxMenuSelect;
-    var sfxApplause;
-    var applausePlaying = false;
-    var showingWinningScreen = false;
-    var menuSfxPlayed = false;
+	var ballRadius = BALL_RADIUS_STATIC;
+	var ballSpeedX = BALLSPEEDX_START;
+	var ballSpeedY = BALLSPEEDY_START;
+	var ballX = BALLX_START;
+	var ballY = BALLY_START;
+	var canvas;
+	var computerHattrick = 0;
+	var ctx;
+	var debugEnabled = false;
+	var framesPerSecond = 120; // animation framerate smoothness
+	var gamePaused = false;
+	var gameStarted = false;
+	var gfxDynamicBallSize = true; // enable close_to_cam effect
+	var gfxRetroMode = false; // enable retro mode    
+	var gfxShadowsEnabled = true; // enable ball shadow
+	var gfxBallImage = true; // enable ball shadow
+	var imgCourt;
+	var imgLogo;
+	var imgBall;
+	var imgBallBoosted;
+	var keyHeld_Pause = false;
+	var mouseX, mouseY;
+	var paddle1X = CY;
+	var paddle1Y = CY;
+	var paddle2X;
+	var paddle2Y = CY;
+	var player1Score = 0;
+	var player2Score = 0;
+	var playerHattrick = 0;
+	var powerBallActive = false;
+	var sfxEnabled = true;
+	var introMusicPlaying = false;
+	var sfxBallOut;
+	var sfxBoost;
+	var sfxInsertCoin;
+	var sfxIntroMusic;
+	var sfxPaddleHit;
+	var sfxWallReflect;
+	var sfxMenuSelect;
+	var sfxApplause;
+	var applausePlaying = false;
+	var showingWinningScreen = false;
+	var menuSfxPlayed = false;
+	
+	window.onblur = function() {
+		sfxEnabled = false;
+		sfxIntroMusic.pause();
+	}
+	
+	window.onfocus =function() {
+		sfxEnabled = true;
+		sfxIntroMusic.play();
+	}
+	
 
-    window.onload = function() {
-        loadSounds();
-        loadImages();
-        createCanvas();
-        canvas = document.getElementById(CANVAS_NAME);
-        ctx = canvas.getContext('2d');
-        setInterval(game, 1000 / framesPerSecond);
+	window.onload = function() {
+		loadSounds();
+		loadImages();
+		createCanvas();
+		canvas = document.getElementById(CANVAS_NAME);
+		ctx = canvas.getContext('2d');
+		setInterval(game, 1000 / framesPerSecond);
 
-        canvas.addEventListener('mousemove', function(evt) {
-            var mousePos = calculateMousePos(evt);
-            if (!gamePaused) {
-                paddle1Y = mousePos.y - (PADDLE_HEIGHT / 2); // minus half paddle height to center              
-            }
-        });
+		canvas.addEventListener('mousemove', function(evt) {
+			var mousePos = calculateMousePos(evt);
+			if (!gamePaused) {
+				paddle1Y = mousePos.y - (PADDLE_HEIGHT / 2); // minus half paddle height to center              
+			}
+		});
+// mobile support to be tested
+//		canvas.addEventListener("touchstart", touchHandler, false);
 
-        document.addEventListener('keypress', keyPressed);
-        canvas.addEventListener('click', function(evt) {
-            resetGame();
-        });
-    } // window.onload()
+		document.addEventListener('keypress', keyPressed);
+		canvas.addEventListener('click', function(evt) {
+			resetGame();
+		});
+	} // window.onload()
 
-    function keyPressed(evt) {
-//        debugLog('Pressed key with code ' + evt.keyCode);
-        switch (evt.keyCode) {
-            case KEY_BALL_IMAGE:
-            case KEY_BALL_IMAGE - 32:
-                gfxBallImage = gfxBallImage ? false : true;
-                debugLog('gfxBallImage is ' + (gfxBallImage ? 'enabled' : 'disabled'));
-                break;
-            case KEY_DEBUG:
-            case KEY_DEBUG - 32:
-                debugEnabled = debugEnabled ? false : true;
-                debugLog('debugLog is ' + (debugLog ? 'enabled' : 'disabled'));
-                break;
-            case KEY_PAUSE:
-            case KEY_PAUSE - 32: // lowercased
-            case KEY_SPACE:
-                gamePaused = gamePaused ? false : true;
-                debugLog('gamePaused is ' + (gamePaused ? 'enabled' : 'disabled'));
-                break;
-            case KEY_SOUND_FX:
-            case KEY_SOUND_FX - 32: // lowercased
-                sfxEnabled = sfxEnabled ? false : true;
-                debugLog('sfxEnabled is ' + (sfxEnabled ? 'enabled' : 'disabled'));
-                if (introMusicPlaying && !sfxEnabled) {
-                    sfxIntroMusic.pause();
-                    introMusicPlaying = false;
-                }
-                if (!gameStarted && sfxEnabled) {
-                    playSfx(sfxIntroMusic);
-                    introMusicPlaying = true;
-                }
-                break;
-            case KEY_DYNAMIC_SIZE:
-            case KEY_DYNAMIC_SIZE - 32:
-                gfxDynamicBallSize = gfxDynamicBallSize ? false : true;
-                debugLog('gfxDynamicBallSize is ' + (gfxDynamicBallSize ? 'enabled' : 'disabled'));
-                debugLog('ballRadius = ' + ballRadius);
-                break;
-            case KEY_SHADOWS:
-            case KEY_SHADOWS - 32:
-                gfxShadowsEnabled = gfxShadowsEnabled ? false : true;
-                debugLog('gfxShadowsEnabled is ' + (gfxShadowsEnabled ? 'enabled' : 'disabled'));
-                break;
-            case KEY_QUIT:
-            case KEY_QUIT - 32:
-                gameStarted = false;
-                gamePaused = false;
-                computerHattrick = 0;
-                playerHattrick = 0;
-                break;
-            case KEY_RETRO:
-            case KEY_RETRO - 32:
-                gfxRetroMode = gfxRetroMode ? false : true;
-                debugLog('gfxRetroMode is ' + (gfxRetroMode ? 'enabled' : 'disabled'));
-                break;
-            default:
-                break;
-        }
-    }
+// mobile support to be tested
+//	function touchHandler(event) {
+//		// Get a reference to our coordinates div
+//		var coords = document.getElementById("coords");
+//		// Write the coordinates of the touch to the div
+//		coords.innerHTML = 'x: ' + event.touches[0].pageX + ', y: ' + event.touches[0].pageY;
+//	}
 
-    function debugLog(text) {
-        if (debugEnabled) {
-            console.log(text);
-        }
-    }
+	function keyPressed(evt) {
+		//        debugLog('Pressed key with code ' + evt.keyCode);
+		switch (evt.keyCode) {
+			case KEY_BALL_IMAGE:
+			case KEY_BALL_IMAGE - 32:
+				gfxBallImage = gfxBallImage ? false : true;
+				debugLog('gfxBallImage is ' + (gfxBallImage ? 'enabled' : 'disabled'));
+				break;
+			case KEY_DEBUG:
+			case KEY_DEBUG - 32:
+				debugEnabled = debugEnabled ? false : true;
+				debugLog('debugLog is ' + (debugLog ? 'enabled' : 'disabled'));
+				break;
+			case KEY_PAUSE:
+			case KEY_PAUSE - 32: // lowercased
+			case KEY_SPACE:
+				gamePaused = gamePaused ? false : true;
+				debugLog('gamePaused is ' + (gamePaused ? 'enabled' : 'disabled'));
+				break;
+			case KEY_SOUND_FX:
+			case KEY_SOUND_FX - 32: // lowercased
+				sfxEnabled = sfxEnabled ? false : true;
+				debugLog('sfxEnabled is ' + (sfxEnabled ? 'enabled' : 'disabled'));
+				if (introMusicPlaying && !sfxEnabled) {
+					sfxIntroMusic.pause();
+					introMusicPlaying = false;
+				}
+				if (!gameStarted && sfxEnabled) {
+					playSfx(sfxIntroMusic);
+					introMusicPlaying = true;
+				}
+				break;
+			case KEY_DYNAMIC_SIZE:
+			case KEY_DYNAMIC_SIZE - 32:
+				gfxDynamicBallSize = gfxDynamicBallSize ? false : true;
+				debugLog('gfxDynamicBallSize is ' + (gfxDynamicBallSize ? 'enabled' : 'disabled'));
+				debugLog('ballRadius = ' + ballRadius);
+				break;
+			case KEY_SHADOWS:
+			case KEY_SHADOWS - 32:
+				gfxShadowsEnabled = gfxShadowsEnabled ? false : true;
+				debugLog('gfxShadowsEnabled is ' + (gfxShadowsEnabled ? 'enabled' : 'disabled'));
+				break;
+			case KEY_QUIT:
+			case KEY_QUIT - 32:
+				gameStarted = false;
+				gamePaused = false;
+				computerHattrick = 0;
+				playerHattrick = 0;
+				break;
+			case KEY_RETRO:
+			case KEY_RETRO - 32:
+				gfxRetroMode = gfxRetroMode ? false : true;
+				debugLog('gfxRetroMode is ' + (gfxRetroMode ? 'enabled' : 'disabled'));
+				break;
+			default:
+				break;
+		}
+	}
 
-    // Dynamically create canvas element
-    function createCanvas() {
-        canvas = document.createElement('canvas');
-        canvas.id = CANVAS_NAME;
-        canvas.width = CANVAS_WIDTH;
-        canvas.height = CANVAS_HEIGHT;
-        canvas.style.zIndex = 8;
-        canvas.style.position = "absolute";
-        canvas.style.border = "1px solid";
-        document.body.appendChild(canvas);
-    } // createCanvas()
+	function debugLog(text) {
+		if (debugEnabled) {
+			console.log(text);
+		}
+	}
 
-    // Get the mouse coordinates
-    function calculateMousePos(evt) {
-        var rect = canvas.getBoundingClientRect(),
-            root = document.documentElement;
+	// Dynamically create canvas element
+	function createCanvas() {
+		canvas = document.createElement('canvas');
+		canvas.id = CANVAS_NAME;
+		canvas.width = CANVAS_WIDTH;
+		canvas.height = CANVAS_HEIGHT;
+		canvas.style.zIndex = 8;
+		canvas.style.position = "absolute";
+		canvas.style.border = "1px solid";
+		document.body.appendChild(canvas);
+	} // createCanvas()
 
-        // account for the margins, canvas position on page, scroll amount, etc.
-        mouseX = evt.clientX - rect.left - root.scrollLeft;
-        mouseY = evt.clientY - rect.top - root.scrollTop;
-//        debugLog('mouseX = ' + mouseX + ', mouseY = ' + mouseY);
-        return {
-            x: mouseX,
-            y: mouseY
-        };
-    } // calculateMousePos()    
+	// Get the mouse coordinates
+	function calculateMousePos(evt) {
+		var rect = canvas.getBoundingClientRect(),
+			root = document.documentElement;
 
-    // Main game loop
-    function game() {
-        if (gameStarted) {
-            moveEverything();
-        }
-        drawEverything();
-    } // game()
+		// account for the margins, canvas position on page, scroll amount, etc.
+		mouseX = evt.clientX - rect.left - root.scrollLeft;
+		mouseY = evt.clientY - rect.top - root.scrollTop;
+		//        debugLog('mouseX = ' + mouseX + ', mouseY = ' + mouseY);
+		return {
+			x: mouseX,
+			y: mouseY
+		};
+	} // calculateMousePos()    
 
-    // Rendering
-    function drawEverything() {
-        ctx.fillStyle = 'black';
-        drawRect(0, 0, canvas.width, canvas.height, 'yellow');
-        drawRect(3, 3, canvas.width - 6, canvas.height - 6, 'black');
+	// Main game loop
+	function game() {
+		if (gameStarted) {
+			moveEverything();
+		}
+		drawEverything();
+	} // game()
 
-        if (gameStarted) {
-            if (showingWinningScreen) {
-                showWinScreen();
-            } else {
-                if (!gfxRetroMode) {
-                    ctx.drawImage(imgCourt, 0, 0);
-                }
-                drawNet();
-                if (gfxBallImage && !gfxRetroMode) {
-                    drawBallImage(ballX, ballY, ballRadius, powerBallActive ? imgBallBoosted : imgBall);
-                } else {
-                    drawBall(ballX, ballY, ballRadius, Math.PI * 2, powerBallActive ? BALL_BOOST_COLOR : BALL_COLOR);
-                }
-                // Draw player's paddle
-                drawPaddle(PADDLE_EDGE_SPACE, paddle1Y, PADDLE_THICKNESS, PADDLE_HEIGHT, 'white');
-                // Draw computer's paddle
-                drawPaddle(canvas.width - PADDLE_THICKNESS - PADDLE_EDGE_SPACE, paddle2Y, PADDLE_THICKNESS, PADDLE_HEIGHT, 'white');
-                if (gamePaused) {
-                    ctx.shadowColor = 'black';
-                    ctx.shadowOffsetX = 3;
-                    ctx.shadowOffsetY = 2;
-                    ctx.fillText('GAME PAUSED', CX, CY);
-                    ctx.shadowOffsetX = 0;
-                    ctx.shadowOffsetY = 0;
-                }
-            }
-            drawScore();
-        } else {
-            showStartScreen();
-        }
-    } // drawEverything()
+	// Rendering
+	function drawEverything() {
+		ctx.fillStyle = 'black';
+		drawRect(0, 0, canvas.width, canvas.height, 'yellow');
+		drawRect(3, 3, canvas.width - 6, canvas.height - 6, 'black');
 
-    // Updating objects
-    function moveEverything() {
-        if (showingWinningScreen) {
-            return;
-        }
+		if (gameStarted) {
+			if (showingWinningScreen) {
+				showWinScreen();
+			} else {
+				if (!gfxRetroMode) {
+					ctx.drawImage(imgCourt, 0, 0);
+				}
+				drawNet();
+				if (gfxBallImage && !gfxRetroMode) {
+					drawBallImage(ballX, ballY, ballRadius, powerBallActive ? imgBallBoosted : imgBall);
+				} else {
+					drawBall(ballX, ballY, ballRadius, Math.PI * 2, powerBallActive ? BALL_BOOST_COLOR : BALL_COLOR);
+				}
+				// Draw player's paddle
+				drawPaddle(PADDLE_EDGE_SPACE, paddle1Y, PADDLE_THICKNESS, PADDLE_HEIGHT, 'white');
+				// Draw computer's paddle
+				drawPaddle(canvas.width - PADDLE_THICKNESS - PADDLE_EDGE_SPACE, paddle2Y, PADDLE_THICKNESS, PADDLE_HEIGHT, 'white');
+				if (gamePaused) {
+					ctx.shadowColor = 'black';
+					ctx.shadowOffsetX = 3;
+					ctx.shadowOffsetY = 2;
+					ctx.fillText('GAME PAUSED', CX, CY);
+					ctx.shadowOffsetX = 0;
+					ctx.shadowOffsetY = 0;
+				}
+			}
+			drawScore();
+		} else {
+			showStartScreen();
+		}
+	} // drawEverything()
 
-        if (gamePaused) {
-            return;
-        }
-        moveComputerPaddle();
-        ballX += ballSpeedX;
-        ballY += ballSpeedY;
-        if (ballX < PADDLE1_RIGHT_EDGE + ballRadius / 2) {
-            if (ballY > paddle1Y && ballY < paddle1Y + PADDLE_HEIGHT) {
-                ballSpeedX *= -1;
-                var deltaY = ballY - (paddle1Y + PADDLE_HEIGHT / 2);
-                ballSpeedY = deltaY * 0.35;
-                playSfx(sfxPaddleHit);
-            } else {
-                if (!showingWinningScreen) {
-                    computerScore++;
-                    playerHattrick = 0;
-                    computerHattrick++;
-                    if (!gfxRetroMode) {
-                        if (powerBallActive) {
-                            powerBallActive = false;
-                            computerHattrick = 0;
-                        } else {
-                            if (computerHattrick == 3) {
-                                powerBallActive = true;
-                            }
-                        }
-                    }
-                    ballReset();
-                    playSfx(sfxBallOut);
-                }
-            }
-        }
+	// Updating objects
+	function moveEverything() {
+		if (showingWinningScreen) {
+			return;
+		}
 
-        if (ballX > PADDLE2_LEFT_EDGE - ballRadius / 2) {
-            if (ballY > paddle2Y && ballY < paddle2Y + PADDLE_HEIGHT) {
-                ballSpeedX *= -1;
-                playSfx(sfxPaddleHit);
-            } else {
-                if (!showingWinningScreen) {
-                    player1Score++;
-                    playerHattrick++;
-                    computerHattrick = 0;
-                    if (!gfxRetroMode) {
-                        if (powerBallActive) {
-                            powerBallActive = false;
-                            playerHattrick = 0;
-                        } else {
-                            if (playerHattrick == 3) {
-                                powerBallActive = true;
-                            }
-                        }
-                    }
-                    ballReset();
-                    playSfx(sfxBallOut);
-                }
-            }
-        }
+		if (gamePaused) {
+			return;
+		}
+		moveComputerPaddle();
+		ballX += ballSpeedX;
+		ballY += ballSpeedY;
+		if (ballX < PADDLE1_RIGHT_EDGE + ballRadius / 2) {
+			if (ballY > paddle1Y && ballY < paddle1Y + PADDLE_HEIGHT) {
+				ballSpeedX *= -1;
+				var deltaY = ballY - (paddle1Y + PADDLE_HEIGHT / 2);
+				ballSpeedY = deltaY * 0.35;
+				playSfx(sfxPaddleHit);
+			} else {
+				if (!showingWinningScreen) {
+					computerScore++;
+					playerHattrick = 0;
+					computerHattrick++;
+					if (!gfxRetroMode) {
+						if (powerBallActive) {
+							powerBallActive = false;
+							computerHattrick = 0;
+						} else {
+							if (computerHattrick == 3) {
+								powerBallActive = true;
+							}
+						}
+					}
+					ballReset();
+					playSfx(sfxBallOut);
+				}
+			}
+		}
 
-        if (gfxDynamicBallSize && !gfxRetroMode) {
-            var delta = (BALL_RADIUS_MAX - BALL_RADIUS_MIN) / 1.25;
-            var ballDelta = BALL_RADIUS_MAX - (Math.abs(ballX - CX) / 10 / delta);
-            if (ballDelta < BALL_RADIUS_MIN) {
-                ballRadius = BALL_RADIUS_MIN;
-            } else {
-                ballRadius = ballDelta;
-            }
-        } else {
-            ballRadius = BALL_RADIUS_STATIC;
-        }
+		if (ballX > PADDLE2_LEFT_EDGE - ballRadius / 2) {
+			if (ballY > paddle2Y && ballY < paddle2Y + PADDLE_HEIGHT) {
+				ballSpeedX *= -1;
+				playSfx(sfxPaddleHit);
+			} else {
+				if (!showingWinningScreen) {
+					player1Score++;
+					playerHattrick++;
+					computerHattrick = 0;
+					if (!gfxRetroMode) {
+						if (powerBallActive) {
+							powerBallActive = false;
+							playerHattrick = 0;
+						} else {
+							if (playerHattrick == 3) {
+								powerBallActive = true;
+							}
+						}
+					}
+					ballReset();
+					playSfx(sfxBallOut);
+				}
+			}
+		}
 
-        if (ballY > canvas.height - ballRadius / 2 || ballY < ballRadius / 2) {
-            ballSpeedY *= -1;
-            playSfx(sfxWallReflect);
-        }
+		if (gfxDynamicBallSize && !gfxRetroMode) {
+			var delta = (BALL_RADIUS_MAX - BALL_RADIUS_MIN) / 1.25;
+			var ballDelta = BALL_RADIUS_MAX - (Math.abs(ballX - CX) / 10 / delta);
+			if (ballDelta < BALL_RADIUS_MIN) {
+				ballRadius = BALL_RADIUS_MIN;
+			} else {
+				ballRadius = ballDelta;
+			}
+		} else {
+			ballRadius = BALL_RADIUS_STATIC;
+		}
 
-    } // moveEverything()
+		if (ballY > canvas.height - ballRadius / 2 || ballY < ballRadius / 2) {
+			ballSpeedY *= -1;
+			playSfx(sfxWallReflect);
+		}
 
-    function playSfx(sfx) {
-        if (sfxEnabled) {
-            sfx.play();
-        }
-    }
+	} // moveEverything()
 
-    // Simple AI for computer paddle
-    function moveComputerPaddle() {
-        var paddleCenter = paddle2Y + PADDLE_HEIGHT / 2;
+	function playSfx(sfx) {
+		if (sfxEnabled) {
+			sfx.play();
+		}
+	}
 
-        if (ballY < paddleCenter - PADDLE2_DEADZONE) {
-            paddle2Y -= COMPUTER_MOVE_SPEED;
-        }
+	// Simple AI for computer paddle
+	function moveComputerPaddle() {
+		var paddleCenter = paddle2Y + PADDLE_HEIGHT / 2;
 
-        if (ballY > paddleCenter + PADDLE2_DEADZONE) {
-            paddle2Y += COMPUTER_MOVE_SPEED;
-        }
-    } // moveComputerPaddle()
+		if (ballY < paddleCenter - PADDLE2_DEADZONE) {
+			paddle2Y -= COMPUTER_MOVE_SPEED;
+		}
 
-    // Reset ball after scoring of game finishes
-    function ballReset() {
-        if (player1Score == MAX_SCORE || computerScore == MAX_SCORE) {
-            showingWinningScreen = true;
-        }
-        ballX = BALLX_START;
-        ballY = BALLY_START;
-        if (powerBallActive && !gfxRetroMode) {
-            ballSpeedY = BALLSPEEDY_START * BALL_SPEED_BOOST;
-            ballSpeedX *= BALL_SPEED_BOOST;
-            playSfx(sfxBoost);
-        } else {
-            ballSpeedY = gfxRetroMode ? BALLSPEEDY_START * 0.5 : BALLSPEEDY_START;
-            ballSpeedX = gfxRetroMode ? BALLSPEEDX_START * 0.5 : BALLSPEEDX_START * -1;
-        }
+		if (ballY > paddleCenter + PADDLE2_DEADZONE) {
+			paddle2Y += COMPUTER_MOVE_SPEED;
+		}
+	} // moveComputerPaddle()
 
-    } // ballReset()
+	// Reset ball after scoring of game finishes
+	function ballReset() {
+		if (player1Score == MAX_SCORE || computerScore == MAX_SCORE) {
+			showingWinningScreen = true;
+		}
+		ballX = BALLX_START;
+		ballY = BALLY_START;
+		if (powerBallActive && !gfxRetroMode) {
+			ballSpeedY = BALLSPEEDY_START * BALL_SPEED_BOOST;
+			ballSpeedX *= BALL_SPEED_BOOST;
+			playSfx(sfxBoost);
+		} else {
+			ballSpeedY = gfxRetroMode ? BALLSPEEDY_START * 0.5 : BALLSPEEDY_START;
+			ballSpeedX = gfxRetroMode ? BALLSPEEDX_START * 0.5 : BALLSPEEDX_START * -1;
+		}
 
-    // Show winning screen with scores
-    function showWinScreen() {
-        if (!applausePlaying) {
-            playSfx(sfxApplause);
-            applausePlaying = true;
-        }
+	} // ballReset()
 
-        // Draw text shadow first
-        //        ctx.shadowColor = 'gray';
-        ctx.shadowBlur = 5;
-        ctx.shadowOffsetY = 2;
-        ctx.shadowOffsetX = 2;
-        ctx.textAlign = 'center';
-        ctx.font = '35px Arial Black';
-        ctx.fillStyle = 'red';
-        if (player1Score >= MAX_SCORE) {
-            ctx.fillText('Player 1 Wins!', CX, CY);
-        }
-        if (computerScore >= MAX_SCORE) {
-            ctx.fillText('Player 2 Wins', CX, CY);
-        }
-        ctx.fillStyle = 'green';
-        ctx.font = '20px Arial';
-        ctx.fillText('Click for return to main screen', CX, CY + 45);
+	// Show winning screen with scores
+	function showWinScreen() {
+		if (!applausePlaying) {
+			playSfx(sfxApplause);
+			applausePlaying = true;
+		}
 
-        // Disable shadows
-        ctx.shadowOffsetY = 0;
-        ctx.shadowOffsetX = 0;
-    } // showWinScreen()
+		// Draw text shadow first
+		//        ctx.shadowColor = 'gray';
+		ctx.shadowBlur = 5;
+		ctx.shadowOffsetY = 2;
+		ctx.shadowOffsetX = 2;
+		ctx.textAlign = 'center';
+		ctx.font = '35px Arial Black';
+		ctx.fillStyle = 'red';
+		if (player1Score >= MAX_SCORE) {
+			ctx.fillText('Player 1 Wins!', CX, CY);
+		}
+		if (computerScore >= MAX_SCORE) {
+			ctx.fillText('Player 2 Wins', CX, CY);
+		}
+		ctx.fillStyle = 'green';
+		ctx.font = '20px Arial';
+		ctx.fillText('Click for return to main screen', CX, CY + 45);
 
-    // Reset game after round ends
-    function resetGame(evt) {
-        if (gameStarted) {
-            if (showingWinningScreen) {
-                showingWinningScreen = false;
-                gameStarted = false;
-                playSfx(sfxIntroMusic);
-                introMusicPlaying = true; // TODO try to find the way of checking if the sound file is playing, eg. audio.isPLaying()
-            }
-        } else {
-            resetScore();
-            ballReset();
-            gameStarted = true;
-            sfxIntroMusic.pause();
-            playSfx(sfxInsertCoin);
-        }
+		// Disable shadows
+		ctx.shadowOffsetY = 0;
+		ctx.shadowOffsetX = 0;
+	} // showWinScreen()
 
-    } // resetGame()
+	// Reset game after round ends
+	function resetGame(evt) {
+		if (gameStarted) {
+			if (showingWinningScreen) {
+				showingWinningScreen = false;
+				gameStarted = false;
+				playSfx(sfxIntroMusic);
+				introMusicPlaying = true; // TODO try to find the way of checking if the sound file is playing, eg. audio.isPLaying()
+			}
+		} else {
+			resetScore();
+			ballReset();
+			gameStarted = true;
+			sfxIntroMusic.pause();
+			playSfx(sfxInsertCoin);
+		}
 
-    // Preload sounds
-    function loadSounds() {
-        sfxIntroMusic = new Audio(PATH_SFX + "ArcadeTennisIntro.mp3");
-        sfxPaddleHit = new Audio(PATH_SFX + "paddleHit.wav");
-        sfxBallOut = new Audio(PATH_SFX + "ballOut.wav");
-        sfxWallReflect = new Audio(PATH_SFX + "ballWallReflect.wav");
-        sfxInsertCoin = new Audio(PATH_SFX + "insertCoin.wav");
-        sfxBoost = new Audio(PATH_SFX + "ballSpeedBoost.wav");
-        sfxApplause = new Audio(PATH_SFX + "applause.mp3");
-        //    sfxMenuSelect = new Audio(PATH_SFX + "menuSelect.wav");
-    } // loadSounds()
+	} // resetGame()
 
-    // Preload images
-    function loadImages() {
-        imgLogo = new Image(562, 203);
-        imgLogo.src = PATH_IMG + 'tennisLogo.png';
-        imgCourt = new Image(CANVAS_WIDTH, CANVAS_HEIGHT);
-        imgCourt.src = PATH_IMG + 'courtBg.jpg';
-        imgBall = new Image(100, 100);
-        imgBall.src = PATH_IMG + 'ballYellow.png';
-        imgBallBoosted = new Image(100, 100);
-        imgBallBoosted.src = PATH_IMG + 'ballRed.png';
-    } // loadImages()
+	// Preload sounds
+	function loadSounds() {
+		sfxIntroMusic = new Audio(PATH_SFX + "ArcadeTennisIntro.mp3");
+		sfxPaddleHit = new Audio(PATH_SFX + "paddleHit.wav");
+		sfxBallOut = new Audio(PATH_SFX + "ballOut.wav");
+		sfxWallReflect = new Audio(PATH_SFX + "ballWallReflect.wav");
+		sfxInsertCoin = new Audio(PATH_SFX + "insertCoin.wav");
+		sfxBoost = new Audio(PATH_SFX + "ballSpeedBoost.wav");
+		sfxApplause = new Audio(PATH_SFX + "applause.mp3");
+		//    sfxMenuSelect = new Audio(PATH_SFX + "menuSelect.wav");
+	} // loadSounds()
 
-    // Shows Start screen with menu (later)
-    function showStartScreen() {
-        applausePlaying = false;
+	// Preload images
+	function loadImages() {
+		imgLogo = new Image(562, 203);
+		imgLogo.src = PATH_IMG + 'tennisLogo.png';
+		imgCourt = new Image(CANVAS_WIDTH, CANVAS_HEIGHT);
+		imgCourt.src = PATH_IMG + 'courtBg.jpg';
+		imgBall = new Image(100, 100);
+		imgBall.src = PATH_IMG + 'ballYellow.png';
+		imgBallBoosted = new Image(100, 100);
+		imgBallBoosted.src = PATH_IMG + 'ballRed.png';
+	} // loadImages()
+
+	// Shows Start screen with menu (later)
+	function showStartScreen() {
+		applausePlaying = false;
 		var promise = sfxIntroMusic.play();
 		if (promise !== undefined) {
 			promise.then(_ => {
 				// Music started
 			}).catch(error => {
 				console.log('Can\'t play music');
-				
+
 			});
 		}
-        ctx.drawImage(imgLogo, CX - imgLogo.width / 2, CY - imgLogo.height / 2);
-        ctx.textAlign = 'center';
-        ctx.font = '30px Arial';
-        ctx.fillStyle = 'green';
-        ctx.fillText('Click to start game', CX, CY + 110);
-        ctx.font = '12px Tahoma';
-        ctx.fillStyle = 'yellow';
-        ctx.fillText('v' + VERSION, CANVAS_WIDTH - 30, 20);
-        // TODO in version 1.3.1 - show menu    
-        //        drawButton(CX, CY + 110, 'Play', 'green', 'yellow');
-        //        drawButton(CX, CY + 145, 'Settings', 'green', 'yellow');
-    } // showStartScreen()
+		ctx.drawImage(imgLogo, CX - imgLogo.width / 2, CY - imgLogo.height / 2);
+		ctx.textAlign = 'center';
+		ctx.font = '30px Arial';
+		ctx.fillStyle = 'green';
+		ctx.fillText('Click to start game', CX, CY + 110);
+		ctx.font = '12px Tahoma';
+		ctx.fillStyle = 'yellow';
+		ctx.fillText('v' + VERSION, CANVAS_WIDTH - 30, 20);
+		// TODO in version 1.3.1 - show menu    
+		//        drawButton(CX, CY + 110, 'Play', 'green', 'yellow');
+		//        drawButton(CX, CY + 145, 'Settings', 'green', 'yellow');
+	} // showStartScreen()
 
-    // Draws button with hover color change
-    function drawButton(x, y, text, clBlur, clFocus) {
-        ctx.textAlign = 'left';
-        ctx.textBaseline = 'top';
-        ctx.font = BTN_FONT_SIZE + 'px ' + BTN_FONT;
-        // get text dimensions
-        var textSize = ctx.measureText(text);
-        // draw text witch clFocus color if mouse cursor is over it
-        if (mouseX > x - textSize.width / 2 &&
-            mouseX < x + textSize.width / 2 &&
-            mouseY > y &&
-            mouseY < y + BTN_FONT_SIZE) {
-            ctx.fillStyle = clFocus;
-            ctx.fillText(text, x - textSize.width / 2, y - BTN_FONT_SIZE / 2);
-        } else {
-            // else draw text with clBlur color
-            ctx.fillStyle = clBlur;
-            ctx.fillText(text, x - textSize.width / 2, y - BTN_FONT_SIZE / 2);
-        }
-    } // drawButton()
+	// Draws button with hover color change
+	function drawButton(x, y, text, clBlur, clFocus) {
+		ctx.textAlign = 'left';
+		ctx.textBaseline = 'top';
+		ctx.font = BTN_FONT_SIZE + 'px ' + BTN_FONT;
+		// get text dimensions
+		var textSize = ctx.measureText(text);
+		// draw text witch clFocus color if mouse cursor is over it
+		if (mouseX > x - textSize.width / 2 &&
+			mouseX < x + textSize.width / 2 &&
+			mouseY > y &&
+			mouseY < y + BTN_FONT_SIZE) {
+			ctx.fillStyle = clFocus;
+			ctx.fillText(text, x - textSize.width / 2, y - BTN_FONT_SIZE / 2);
+		} else {
+			// else draw text with clBlur color
+			ctx.fillStyle = clBlur;
+			ctx.fillText(text, x - textSize.width / 2, y - BTN_FONT_SIZE / 2);
+		}
+	} // drawButton()
 
-    // Draw both players score
-    function drawScore() {
-        if (showingWinningScreen) {
-            return;
-        }
-        ctx.fillStyle = 'white';
-        // Player 1 score
-        ctx.font = '30px Arial';
-        ctx.fillText(player1Score, CANVAS_WIDTH / 4, 35);
-        // Player 2 / computer score
-        ctx.fillText(computerScore, CANVAS_WIDTH * 3 / 4, 35);
-    } // drawScore()
+	// Draw both players score
+	function drawScore() {
+		if (showingWinningScreen) {
+			return;
+		}
+		ctx.fillStyle = 'white';
+		// Player 1 score
+		ctx.font = '30px Arial';
+		ctx.fillText(player1Score, CANVAS_WIDTH / 4, 35);
+		// Player 2 / computer score
+		ctx.fillText(computerScore, CANVAS_WIDTH * 3 / 4, 35);
+	} // drawScore()
 
-    // Reset score after round end
-    function resetScore() {
-        player1Score = 0;
-        computerScore = 0;
-    } // resetScore()
+	// Reset score after round end
+	function resetScore() {
+		player1Score = 0;
+		computerScore = 0;
+	} // resetScore()
 
-    // Draw colored rectangle
-    function drawRect(x, y, width, height, color) {
-        ctx.fillStyle = color;
-        ctx.fillRect(x, y, width, height);
-    } // drawRect()
+	// Draw colored rectangle
+	function drawRect(x, y, width, height, color) {
+		ctx.fillStyle = color;
+		ctx.fillRect(x, y, width, height);
+	} // drawRect()
 
-    // Draw ball as colored circle
-    function drawBall(x, y, r, a, color) {
-        if (gfxShadowsEnabled && !gfxRetroMode) {
-            ctx.shadowColor = BALL_SHADOW_COLOR;
-            ctx.shadowBlur = 5;
-            ctx.shadowOffsetY = 3;
-            ctx.shadowOffsetX = 5 * (ballX - CX) / 100;
-        }
-        //    ctx.drawImage(imgBall, x, y, r*1.55, r*1.55);
-        ctx.fillStyle = color;
-        ctx.beginPath();
-        ctx.arc(x, y, (gfxRetroMode) ? BALL_RADIUS_STATIC : r, 0, a, true);
-        ctx.fill();
-        if (gfxShadowsEnabled) {
-            ctx.shadowOffsetY = 0;
-            ctx.shadowOffsetX = 0;
-        }
-    } // drawBall()
+	// Draw ball as colored circle
+	function drawBall(x, y, r, a, color) {
+		if (gfxShadowsEnabled && !gfxRetroMode) {
+			ctx.shadowColor = BALL_SHADOW_COLOR;
+			ctx.shadowBlur = 5;
+			ctx.shadowOffsetY = 3;
+			ctx.shadowOffsetX = 5 * (ballX - CX) / 100;
+		}
+		//    ctx.drawImage(imgBall, x, y, r*1.55, r*1.55);
+		ctx.fillStyle = color;
+		ctx.beginPath();
+		ctx.arc(x, y, (gfxRetroMode) ? BALL_RADIUS_STATIC : r, 0, a, true);
+		ctx.fill();
+		if (gfxShadowsEnabled) {
+			ctx.shadowOffsetY = 0;
+			ctx.shadowOffsetX = 0;
+		}
+	} // drawBall()
 
-    // Draw ball as image
-    function drawBallImage(x, y, r, image) {
-        if (gfxShadowsEnabled) {
-            ctx.shadowColor = BALL_SHADOW_COLOR;
-            ctx.shadowBlur = 5;
-            ctx.shadowOffsetY = 3;
-            ctx.shadowOffsetX = 5 * (ballX - CX) / 100;
-        }
-        ctx.drawImage(image, x, y, r * 2, r * 2); // double the radius because the image takes width x height
-        if (gfxShadowsEnabled) {
-            ctx.shadowOffsetY = 0;
-            ctx.shadowOffsetX = 0;
-        }
-    } // drawBallImage()
+	// Draw ball as image
+	function drawBallImage(x, y, r, image) {
+		if (gfxShadowsEnabled) {
+			ctx.shadowColor = BALL_SHADOW_COLOR;
+			ctx.shadowBlur = 5;
+			ctx.shadowOffsetY = 3;
+			ctx.shadowOffsetX = 5 * (ballX - CX) / 100;
+		}
+		ctx.drawImage(image, x, y, r * 2, r * 2); // double the radius because the image takes width x height
+		if (gfxShadowsEnabled) {
+			ctx.shadowOffsetY = 0;
+			ctx.shadowOffsetX = 0;
+		}
+	} // drawBallImage()
 
-    // Draw paddle
-    function drawPaddle(x, y, width, height, color) {
-        if (gfxRetroMode) {
-            drawRect(x, y, width, height, 'white');
-        } else {
-            drawRect(x, y, width, height, color);
-            drawRect(x + 2, y + 2, width - 4, height - 4, PADDLE_COLOR);
-        }
+	// Draw paddle
+	function drawPaddle(x, y, width, height, color) {
+		if (gfxRetroMode) {
+			drawRect(x, y, width, height, 'white');
+		} else {
+			drawRect(x, y, width, height, color);
+			drawRect(x + 2, y + 2, width - 4, height - 4, PADDLE_COLOR);
+		}
 
-    } // drawPaddle()
+	} // drawPaddle()
 
-    // Draw playground net
-    function drawNet() {
+	// Draw playground net
+	function drawNet() {
 		ctx.strokeStyle = 'white';
 		ctx.lineWidth = 2;
 		ctx.setLineDash([5, 3]);
@@ -577,14 +618,14 @@
 		ctx.moveTo(CX, 0);
 		ctx.lineTo(CX, CANVAS_HEIGHT);
 		ctx.stroke();
-    } // drawNet()
+	} // drawNet()
 
 </script>
 
 
 <body>
-    <!--     We are creating canvas element dynamically -->
-    <!--    <canvas id="gameCanvas" width="800" height="600"></canvas>-->
+	<!--     We are creating canvas element dynamically -->
+	<!--    <canvas id="gameCanvas" width="800" height="600"></canvas>-->
 
 </body>
 

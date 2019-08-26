@@ -1,9 +1,12 @@
 # Arcade Tennis
 
-## Version 1.3.1
+## Version 1.3.2
 ## Created by Robert Sibek, Bad Mug Games
 
 ### TODOS
+- optimize ball speed (too fast on regular machines)
+- ballReset should place the ball from different locations
+- enable slide control for mobile devices
 - redesign welcome screen. Show logo, add music, maybe some animation (demo play)
 - add difficulty selection
 - redesign paddles
